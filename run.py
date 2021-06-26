@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import pandas as pd
 
 app = Flask(__name__)
 app.config ['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///twitter_data.sqlite3'
@@ -27,7 +28,14 @@ class extracted_data(db.Model):
 #db.create_all()
 
 def insert_data():
-    pass
+    csv_data=pd.read_csv('processed_tweet_data.csv')
+    csv_data=csv_data.values.tolist()
+    for row in csv_data:
+        data=extracted_data(source=row[0],original_text=row[1],polarity=row[2],subjectivity=row[3],lang=row[4],
+        favorite_count=row[5],retweet_count=row[6],original_author=row[7],followers_count=row[8],friends_count=row[9],
+        hashtags=row[10],user_mentions=row[11],place=row[12])
+        db.session.add(data)
+        db.session.commit()
 
 @app.route("/")  # this sets the route to this page
 def home():
