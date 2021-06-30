@@ -1,7 +1,9 @@
-from flask import Flask
+from flask import Flask,render_template,url_for
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.inspection import inspect
 from datetime import datetime
 import pandas as pd
+from collections import defaultdict
 
 app = Flask(__name__)
 app.config ['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///twitter_data.sqlite3'
@@ -28,6 +30,7 @@ class extracted_data(db.Model):
 #db.create_all()
 
 def insert_data():
+    print('starting')
     csv_data=pd.read_csv('processed_tweet_data.csv')
     csv_data=csv_data.values.tolist()
     for row in csv_data:
@@ -36,14 +39,45 @@ def insert_data():
         hashtags=row[10],user_mentions=row[11],place=row[12])
         db.session.add(data)
         db.session.commit()
+    print('done')
 
-@app.route("/")  # this sets the route to this page
+def text_category(p):
+    newp = pd.to_numeric(p)
+    arr = []
+    for x in newp:
+        if x > 0:
+            arr.append('positive')
+        elif x == 0:
+            arr.append('neutral')
+        else:
+            arr.append('negative')
+    return arr
+
+def query_to_dict(rset):
+    result = defaultdict(list)
+    for obj in rset:
+        instance = inspect(obj)
+        for key, x in instance.attrs.items():
+            result[key].append(x.value)
+    return result
+
+def score_count():
+    data = extracted_data.query.all()
+    df = pd.DataFrame(query_to_dict(data))
+    print(df["subjectivity"].head())
+    df['score'] = text_category(df["subjectivity"])
+    ax = df["score"].value_counts().plot(kind = 'barh')
+    ax.figure.savefig('static/demo-file.png')
+
+
+@app.route("/")
 def home():
-	return "Hello! this is the main page <h1>HELLO</h1>"  # some basic inline html
+	return "Hello! this is the main page <h1>HELLO</h1>"
 
-@app.route("/twitterdata")  # this sets the route to this page
+@app.route("/twitterdata")
 def twitterdata():
-	return "Hello! this is a placeholder for twitter data page <h1>HELLO</h1>"  # some basic inline html
+    score_count()
+    return render_template('index.html')
 
 if __name__ == "__main__":
     app.run()
