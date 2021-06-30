@@ -1,4 +1,4 @@
-from flask import Flask,render_template,url_for
+from flask import Flask,render_template
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.inspection import inspect
 from datetime import datetime
@@ -66,8 +66,16 @@ def score_count():
     df = pd.DataFrame(query_to_dict(data))
     print(df["subjectivity"].head())
     df['score'] = text_category(df["subjectivity"])
-    ax = df["score"].value_counts().plot(kind = 'barh')
+    ax = df["score"].value_counts().plot(kind = 'barh',title='bar chart of sentiments')
     ax.figure.savefig('static/demo-file.png')
+
+def pie_count():
+    data = extracted_data.query.all()
+    df = pd.DataFrame(query_to_dict(data))
+    print(df["subjectivity"].head())
+    df['score'] = text_category(df["subjectivity"])
+    ax = df["score"].value_counts().plot(kind = 'pie',title='pie chart of sentiments')
+    ax.figure.savefig('pie-file.png')
 
 
 @app.route("/")
@@ -78,6 +86,11 @@ def home():
 def twitterdata():
     score_count()
     return render_template('index.html')
+
+@app.route("/piedata")
+def piedata():
+    score_count()
+    return render_template('test.html')
 
 if __name__ == "__main__":
     app.run()
